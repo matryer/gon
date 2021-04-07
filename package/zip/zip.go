@@ -132,12 +132,27 @@ func createRoot(ctx context.Context, logger hclog.Logger, opts *Options) (string
 		return "", err
 	}
 
+	// further nest the files into another folder with the
+	// same name as the app.
+	// This ensures zip files contain the app, rather than the contents
+	// of the app folder.
+	// see https://github.com/mitchellh/gon/issues/18
+	appDir := root
+	if len(opts.Files) == 1 {
+		appName := filepath.Base(opts.Files[0])
+		appDir = filepath.Join(root, appName)
+		err = os.MkdirAll(appDir, 0777)
+		if err != nil {
+			return "", err
+		}
+	}
+
 	// Setup our args to copy our files into the root
 	cmd.Args = []string{
 		filepath.Base(cmd.Path),
 	}
 	cmd.Args = append(cmd.Args, opts.Files...)
-	cmd.Args = append(cmd.Args, root)
+	cmd.Args = append(cmd.Args, appDir)
 
 	// We store all output in out for logging and in case there is an error
 	var out bytes.Buffer
